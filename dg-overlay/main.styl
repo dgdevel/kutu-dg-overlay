@@ -1,0 +1,45 @@
+fontdef()
+	font-family "Arial Rounded MT"
+	color #f5af19
+	text-shadow -1px -1px 0 black, 1px -1px 0 black, -1px 1px 0 black, 1px 1px 0 black
+
+fontbig()
+	fontdef()
+	font-size 40px
+
+fontsmall()
+	fontdef()
+	font-size 24px
+
+roundbox()
+	background-color rgba(0, 0, 0, 0.7)
+	border-radius 16px
+	display inline-block
+	padding 32px
+	margin 16px
+
+*
+	border 0
+	padding 0
+	margin 0
+
+.info
+	roundbox()
+	.track
+		fontbig()
+	.track-location
+		fontsmall()
+	.driver
+		fontbig()
+	.car
+		fontsmall()
+	.status
+		fontsmall()
+
+.standings
+	roundbox()
+	fontsmall()
+	.carClass, .gap
+		text-align right
+	.carClass
+		color white

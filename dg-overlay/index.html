@@ -1,0 +1,29 @@
+<!doctype html>
+<html>
+	<head>
+		<title>dg-overlay</title>
+		<script src=https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.0/jquery.js></script>
+		<script src=https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.9.1/underscore.js></script>
+		<script src=https://cdnjs.cloudflare.com/ajax/libs/handlebars.js/4.1.2/handlebars.js></script>
+		<script src=https://cdnjs.cloudflare.com/ajax/libs/stylus/0.32.1/stylus.js></script>
+		<script src=iracing.js></script>
+		<script>
+			var config = {
+				// positive number: max cars to be displayed in standings
+				// in multiclass: max cars to be displayed for each car class
+				maxCars : -1,
+				// for debug and developement: interval to reload main.styl and main.html
+				reloadResourcesEvery : -1,
+				// to display or not the info box
+				showDriverInfoBox : true,
+				// to display or not the standings box
+				showStandings : true
+			};
+		</script>
+		<script src=template-updater.js></script>
+		<script src=data-updater.js></script>
+		<script src=css-updater.js></script>
+		<style id=stylesheet></style>
+	</head>
+	<body></body>
+</html>

@@ -1,0 +1,74 @@
+{{#if track }}
+	{{#if config.showDriverInfoBox}}
+	<div class=info>
+		<div class=track>
+			{{ track.name }}
+			{{#if track.layout }}
+				- {{ track.layout }}
+			{{/if}}
+		</div>
+		<div class=track-location>
+			{{ track.city }} ( {{ track.country }} )
+		</div>
+		<div class=driver>
+			{{ driver.driver }} ( {{ driver.license }} )
+			{{#if driver.showTeam }}
+				- {{ driver.team }}
+			{{/if}}
+		</div>
+		<div class=car>
+			{{ driver.car }}
+		</div>
+		<div class=status>
+			{{#if session.qualify }}
+				qualify
+			{{/if}}
+			{{#if session.race }}
+				{{ session.status }}
+			{{/if}}
+		</div>
+	</div>
+	{{/if}}
+
+	<br>
+
+	{{#if config.showStandings}}
+		{{#if standings.carClasses }}
+			<div class=standings>
+				<table>
+					{{#each standings.carClasses }}
+						<tr>
+							<td colspan=5 class=carClass>
+								{{ name }}
+							</td>
+						</tr>
+						{{#each this.subStandings }}
+							<tr>
+								<td>{{ positionStr }}</td>
+								<td>&nbsp;</td>
+								<td>{{ team }}</td>
+								<td>&nbsp;</td>
+								<td class=gap>{{ gapStr }}</td>
+							</tr>
+						{{/each}}
+					{{/each}}
+				</table>
+			</div>
+		{{ else }}
+			<div class=standings>
+				<table>
+					{{#each standings }}
+						<tr>
+							<td>{{ positionStr }}</td>
+							<td>&nbsp;</td>
+							<td>{{ driver }}</td>
+							<td>&nbsp;</td>
+							<td class=gap>{{ gapStr }}</td>
+						</tr>
+					{{/each}}
+				</table>
+			</div>
+		{{/if }}
+	{{/if }}
+
+{{/if}}
