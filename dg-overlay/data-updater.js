@@ -57,10 +57,11 @@ var onUpdate = (keys) => {
 				carClass : driver.CarClassShortName
 			};
 		}
-		data.numberOfCarClass = _(_(ir.data.DriverInfo.Drivers)
+		data.numberOfCarClass = ir.data.DriverInfo.Drivers
 			.filter(function(d) {return !!d.CarClassShortName;})
-			.map(function(d) { return d.CarClassShortName }))
-			.uniq().length;
+			.map(function(d) { return d.CarClassShortName })
+			.reduce(function(a,v) { if (a.indexOf(v) === -1) { a.push(v); } return a; }, [])
+			.length;
 	}
 	if (keys.indexOf('CamCarIdx') !== -1) {
 		data.car = {
