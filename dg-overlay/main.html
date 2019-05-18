@@ -1,74 +1,74 @@
-{{#if track }}
+{{#if event }}
+
 	{{#if config.showDriverInfoBox}}
-	<div class=info>
-		<div class=track>
-			{{ track.name }}
-			{{#if track.layout }}
-				- {{ track.layout }}
+		<div class=info>
+			<div class=track>
+				{{ event.track.name }}
+				{{#if event.track.layout }}
+					- {{ event.track.layout }}
+				{{/if}}
+			</div>
+			<div class=track-location>
+				{{ event.track.city }} ( {{ event.track.country }} )
+			</div>
+			<div class=driver>
+				{{ currentDriver.driver.driver }} ( {{ currentDriver.driver.license }}, iR {{ currentDriver.driver.iRating }} )
+			</div>
+			{{#if currentDriver.team.name }}
+				<div class=team>
+					{{ currentDriver.team.name }}
+				</div>
 			{{/if}}
 		</div>
-		<div class=track-location>
-			{{ track.city }} ( {{ track.country }} )
-		</div>
-		<div class=driver>
-			{{ driver.driver }} ( {{ driver.license }} )
-			{{#if driver.showTeam }}
-				- {{ driver.team }}
-			{{/if}}
-		</div>
-		<div class=car>
-			{{ driver.car }}
-		</div>
-		<div class=status>
-			{{#if session.qualify }}
-				qualify
-			{{/if}}
-			{{#if session.race }}
-				{{ session.status }}
-			{{/if}}
-		</div>
-	</div>
 	{{/if}}
 
 	<br>
 
 	{{#if config.showStandings}}
-		{{#if standings.carClasses }}
-			<div class=standings>
+		<div class=standings>
+			{{#if multiClass }}
 				<table>
-					{{#each standings.carClasses }}
+					{{#each standings }}
 						<tr>
-							<td colspan=5 class=carClass>
-								{{ name }}
-							</td>
+							<td colspan=6 class=carClass>{{ carClass }}</td>
 						</tr>
-						{{#each this.subStandings }}
+						{{#each subStandings }}
 							<tr>
-								<td>{{ positionStr }}</td>
+								<td>{{ position }}</td>
 								<td>&nbsp;</td>
-								<td>{{ team }}</td>
+								<td>{{ name }}</td>
 								<td>&nbsp;</td>
-								<td class=gap>{{ gapStr }}</td>
+								<td class=gap>{{ gap }}</td>
+								<td class=best>
+									{{#if best }}
+										<div>{{ best }}</div>
+									{{/if}}
+								</td>
 							</tr>
 						{{/each}}
 					{{/each}}
 				</table>
-			</div>
-		{{ else }}
-			<div class=standings>
+			{{else}}
 				<table>
 					{{#each standings }}
 						<tr>
-							<td>{{ positionStr }}</td>
+							<td>{{ position }}</td>
 							<td>&nbsp;</td>
-							<td>{{ driver }}</td>
+							<td>{{ name }}</td>
 							<td>&nbsp;</td>
-							<td class=gap>{{ gapStr }}</td>
+							<td class=gap>
+								{{ gap }}
+							</td>
+							<td class=best>
+								{{#if best }}
+									<div>{{ best }}</div>
+								{{/if}}
+							</td>
 						</tr>
 					{{/each}}
 				</table>
-			</div>
-		{{/if }}
-	{{/if }}
+			{{/if}}
+		</div>
+	{{/if}}
 
 {{/if}}

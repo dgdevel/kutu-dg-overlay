@@ -15,6 +15,16 @@ function fmtGap(lapsBehind, gap) {
 	return laps + (String(min).padStart(2, '0') + ":" + String(sec).padStart(2,'0') + '.' + dec.toFixed(1).substring(2));
 }
 
+function fmtLapTime(time) {
+	var min = parseInt(time / 60);
+	var sec = parseInt(time) % 60;
+	var dec = time % 1;
+	if (min > 0) {
+		return String(min).padStart(2,'0')+ ":" + String(sec).padStart(2,'0') + "." + dec.toFixed(3).substring(2);
+	}
+	return String(sec).padStart(2,'0') + "." + dec.toFixed(3).substring(2);
+}
+
 var ir = new IRacing(
 	// refreshed every time
 	[ 'DriverInfo'
@@ -22,6 +32,9 @@ var ir = new IRacing(
 	, 'SessionNum'
 	, 'SessionTimeRemain'
 	, 'CamCarIdx'
+	, 'CarIdxLapCompleted'
+	, 'CarIdxLapDistPct'
+	, 'SessionTime'
 	]
 	// refreshed once
 	, [ 'WeekendInfo'
@@ -29,152 +42,190 @@ var ir = new IRacing(
 	// one refresh per second
 	, 1);
 
-var data = {config:config};
+var data = {
+	config:config
+	/*
+	the data structure built by the updater
+	
+	event : {
+		track : {
+			name : string,
+			layout : string,
+			city : string,
+			country : string,
+			temp : string
+		},
+		air : {
+			temp : string
+		},
+		type : string, // PRACTICE, QUALIFY, RACE
+		status : {
+			totalTime : number, // seconds
+			remainingTime : number,
+			totalLaps : number,
+			completedLaps : number
+		},
+	},
+	cars : [
+		{
+			type : string,
+			className : string,
+			driver : {
+				name : string,
+				license : string,
+				iRating : number
+			},
+			team : {
+				name : string
+			}
+		}
+	],
+	multiClass : boolean,
+	standings : [
+		{
+			position : string,
+			name : string,
+			gap : string,
+			best : string 
+		}
+	],
+	current : number // index
+	
+	*/
+};
 
 ir.onConnect = () => { data = {config:config}; redraw(); };
 ir.onDisconnect = () => { data = {config:config}; redraw(); };
 
-var onUpdate = (keys) => {
-	// console.log(new Date(), 'onUpdate', keys);
-	if (keys.indexOf('WeekendInfo') !== -1) {
-		data.track = {
-			name : ir.data.WeekendInfo.TrackDisplayName,
-			layout : ir.data.WeekendInfo.TrackConfigName,
-			shortName : ir.data.WeekendInfo.TrackName,
-			city : ir.data.WeekendInfo.TrackCity,
-			country : ir.data.WeekendInfo.TrackCountry
-		};
-	}
-	if (keys.indexOf('DriverInfo') !== -1) {
-		data.drivers = {};
-		for (var i = 0; i < ir.data.DriverInfo.Drivers.length; i++) {
-			var driver = ir.data.DriverInfo.Drivers[i];
-			data.drivers[driver.CarIdx] = {
-				car : driver.CarScreenName,
-				driver : driver.UserName,
-				license : driver.LicString,
-				team : driver.TeamName,
-				carClass : driver.CarClassShortName
+ir.onUpdate = (keys) => {
+	try {
+		if (keys.indexOf('WeekendInfo') !== -1) {
+			data.event = {
+				track : {
+					name : ir.data.WeekendInfo.TrackDisplayName,
+					layout : ir.data.WeekendInfo.TrackConfigName,
+					city : ir.data.WeekendInfo.TrackCity,
+					country : ir.data.WeekendInfo.TrackCountry,
+					temp : ir.data.WeekendInfo.TrackSurfaceTemp
+				},
+				air : {
+					temp : ir.data.WeekendInfo.TrackAirTemp
+				}
 			};
 		}
-		data.numberOfCarClass = ir.data.DriverInfo.Drivers
-			.filter(function(d) {return !!d.CarClassShortName;})
-			.map(function(d) { return d.CarClassShortName })
-			.reduce(function(a,v) { if (a.indexOf(v) === -1) { a.push(v); } return a; }, [])
-			.length;
-	}
-	if (keys.indexOf('CamCarIdx') !== -1) {
-		data.car = {
-			idx : ir.data.CamCarIdx,
-			hasInfo : data.drivers && data.drivers[ir.data.CamCarIdx]
-		};
-		if (data.car.hasInfo) {
-			data.driver = data.drivers[ir.data.CamCarIdx];
-			data.driver.showTeam = data.driver.team !== data.driver.driver;
-		}
-	}
-	if (keys.indexOf('SessionNum') !== -1) {
-		if (data.sessions && data.sessions[ir.data.SessionNum]) {
-			var session = data.sessions[ir.data.SessionNum];
-			var status = null;
-			if ('number' === typeof session.totalLaps && session.lapsCompleted >= 0) {
-				if (session.lapsCompleted == session.totalLaps - 1) {
-					status = "Last lap";
-				} else {
-					status = session.lapsCompleted + " / " + session.totalLaps + " laps";
+		if (keys.indexOf('DriverInfo') !== -1) {
+			data.cars = ir.data.DriverInfo.Drivers.map((driver) => { return {
+				type : driver.CarScreenName,
+				className : driver.CarClassShortName,
+				driver : {
+					driver : driver.UserName,
+					license : driver.LicString,
+					iRating : driver.IRating
+				},
+				team : {
+					name : driver.TeamName
 				}
-			} else {
-				if (typeof session.timeLimit === 'undefined') {
-					status = "";
-				} else {
-					totalMinutes = parseInt(session.timeLimit.match(/([0-9]+).[0-9]+ sec/)[1]) / 60;
-					status = session.lapsCompleted + " laps / " + totalMinutes + " mins";
-				}
-			}
-			data.session = {
-				num : ir.data.SessionNum,
-				type : data.sessions[ir.data.SessionNum].type,
-				status : status
-			};
-			data.session.practice = data.session.type === 'PRACTICE';
-			data.session.qualify = data.session.type === 'QUALIFY';
-			data.session.race = data.session.type === 'RACE';
+			}});
 		}
-		
-	}
-	if (keys.indexOf('SessionInfo') !== -1) {
-		data.sessions = {};
-		for (var i = 0; i < ir.data.SessionInfo.Sessions.length; i++) {
-			var session = ir.data.SessionInfo.Sessions[i];
-			data.sessions[session.SessionNum] = {
+		if (keys.indexOf('CamCarIdx') !== -1) {
+			data.current = ir.data.CamCarIdx;
+		}
+		if (keys.indexOf('SessionNum') !== -1) {
+			data._sessionNum = ir.data.SessionNum;
+		}
+		if (keys.indexOf('SessionInfo') !== -1) {
+			data._sessions = ir.data.SessionInfo.Sessions.map((session) => { return {
 				type : session.SessionName,
 				lapsCompleted : session.ResultsLapsComplete,
 				totalLaps : session.SessionLaps,
-				timeLimit : typeof session.SessionTime !== 'undefined' ? session.SessionTime : -1
-			};
-			if (data.drivers && data.session && data.session.num === session.SessionNum) {
-				if (data.numberOfCarClass > 1) {
-					data.standings = {
-						carClasses : {}
-					};
-					for (var j = 0; j < ir.data.SessionInfo.Sessions[i].ResultsPositions.length ; j++) {
-						var info = ir.data.SessionInfo.Sessions[i].ResultsPositions[j];
-						var driver = data.drivers[info.CarIdx];
-						if (!driver.carClass) {
-							// pace car / safety car
-							continue;
-						}
-						if (!data.standings.carClasses[driver.carClass]) {
-							data.standings.carClasses[driver.carClass] = {
-								name : driver.carClass,
-								subStandings : []
-							};
-						}
-						data.standings.carClasses[driver.carClass].subStandings.push({
-							position : info.ClassPosition + 1,
-							positionStr : String(info.ClassPosition + 1).padStart(2, "0"),
-							driver : driver.driver,
-							team : driver.team,
-							gap : info.Time,
-							lapsBehind : session.ResultsLapsComplete - info.LapsComplete,
-							gapStr : fmtGap(session.ResultsLapsComplete - info.LapsComplete, info.Time)
-						});
-					}
-					if (config.maxCars > 0) {
-						for (var carClass in data.standings.carClasses) {
-							if (config.maxCars < data.standings.carClasses[carClass].subStandings.length) {
-								data.standings.carClasses[carClass].subStandings.splice(config.maxCars+1,
-									data.standings.carClasses[carClass].subStandings.length - config.maxCars);
-							}
-						}
-					}
-				} else {
-					data.standings = [];
-					for (var j = 0; j < ir.data.SessionInfo.Sessions[i].ResultsPositions.length ; j++) {
-						if (config.maxCars > 0 && data.standings.length > config.maxCars) {
-							break;
-						}
-						var info = ir.data.SessionInfo.Sessions[i].ResultsPositions[j];
-						data.standings.push({
-							position : info.Position,
-							positionStr : String(info.Position).padStart(2, "0"),
-							driver : data.drivers[info.CarIdx].driver,
-							gap : info.Time,
-							lapsBehind : (session.ResultsLapsComplete - info.LapsComplete),
-							gapStr : fmtGap(session.ResultsLapsComplete - info.LapsComplete, info.Time)
-						});
-					}
-				}
-			}
+				timeLimit : session.SessionTime,
+				ResultsPositions : session.ResultsPositions
+			}});
+		}
+		if (keys.indexOf('SessionTime') !== -1) {
+			data._sessionTime = ir.data.SessionTime;
+		}
+		if (keys.indexOf('CarIdxLapCompleted') !== -1) {
+			data._lapsCompleted = ir.data.CarIdxLapCompleted;
+		}
+		if (keys.indexOf('CarIdxLapDistPct') !== -1) {
+			data._currentLapDistanceCompleted = ir.data.CarIdxLapDistPct;
 		}
 		
-	}
-	redraw();
-};
-
-ir.onUpdate = (keys) => {
-	try {
-		onUpdate(keys);
+		// complete missing data for rendering
+		if (data.current && data.cars) {
+			data.currentDriver = JSON.parse(JSON.stringify(data.cars[data.current]));
+			if (data.currentDriver.team.name === data.currentDriver.driver.name) {
+				data.currentDriver.team.name = null;
+			}
+		}
+		if (data._sessionNum && data._sessions && data.event) {
+			var session = data._sessions[data._sessionNum];
+			data.event.type = session.type;
+			data.event.status = {
+				totalTime : session.timeLimit,
+				remainingTime : data._sessionTime,
+				totalLaps : session.totalLaps,
+				completedLaps : session.lapsCompleted
+			};
+		}
+		if (data._sessionNum && data._sessions && data.cars && data.event && data.event.status && data._currentLapDistanceCompleted) {
+			var carClasses = data.cars.reduce((classes, car) => {
+				if (car.className && classes.indexOf(car.className) === -1) {
+					classes.push(car.className);
+				}
+				return classes;
+			}, []);
+			var session = data._sessions[data._sessionNum];
+			data.multiClass = carClasses.length > 1;
+			if (carClasses.length > 1) {
+				data.standings = carClasses.map((carClass) => {
+					var subList = [];
+					if (session.ResultsPositions) {
+						subList = session.ResultsPositions.
+							filter((rp) => data.cars[rp.CarIdx].className === carClass).
+							map((rp, index) => {
+								var car = data.cars[rp.CarIdx];
+								var best = null;
+								if (data._currentLapDistanceCompleted[rp.CarIdx] < 0.5) {
+									if (rp.LastTime === rp.FastestTime && rp.FastestLap !== -1 && rp.LastTime > 0) {
+										best = fmtLapTime(rp.LastTime);
+									}
+								}
+								return {
+									position : String(rp.ClassPosition + 1).padStart(2, '0'),
+									name : car.team.name ? car.team.name : car.driver.name,
+									gap : fmtGap(data.event.status.completedLaps - rp.LapsComplete, rp.Time),
+									best : best
+								}
+							}).
+							slice(0, config.maxCars !== -1 ? config.maxCars : 255);
+					}
+					
+					return {
+						carClass : carClass,
+						subStandings : subList
+					};
+				});
+			} else {
+				data.standings = session.ResultsPositions.map((rp, index) => {
+					var car = data.cars[rp.CarIdx];
+					var best = null;
+					if (data._currentLapDistanceCompleted[rp.CarIdx] < 0.5) {
+						if (rp.LastTime === rp.FastestTime && rp.FastestLap !== -1 && rp.LastTime > 0) {
+							best = fmtLapTime(rp.LastTime);
+						}
+					}
+					return {
+						position : String(rp.ClassPosition + 1).padStart(2, '0'),
+						name : car.team.name ? car.team.name : car.driver.name,
+						gap : fmtGap(data.event.status.completedLaps - rp.LapsComplete, rp.Time),
+						best : best
+					}
+				}).slice(0, config.maxCars !== -1 ? config.maxCars : 255);
+			}
+		}
+		redraw();
 	} catch (e) {
 		console.error(e);
 	}
